@@ -20,34 +20,31 @@ class ImageService
 
     private const THUMB_SIZE = 400;  
 
-    public function store(Album $album, UploadedFile $file): Photo
-    {
-        $disk = Storage::disk('public');
-        $name = Str::uuid() . '.webp';
+            public function store(Album $album, UploadedFile $file): Photo
+            {
+                $disk = Storage::disk('public');
+                $name = Str::uuid() . '.webp';
 
-        $path      = "albums/{$album->id}/{$name}";
-        $thumbPath = "albums/{$album->id}/thumbs/{$name}";
+                $path      = "albums/{$album->id}/{$name}";
+                $thumbPath = "albums/{$album->id}/thumbs/{$name}";
 
-        $image = Image::read($file)->scaleDown(width: self::MAX_WIDTH);
+                $image   = Image::read($file)->scaleDown(width: self::MAX_WIDTH);
+                $encoded = $image->toWebp(80);               // encode first...
+                $disk->put($path, (string) $encoded);        // ...then save
 
-        
-        $disk->put($path, (string) $encoded);
+                $thumb = Image::read($file)->cover(self::THUMB_SIZE, self::THUMB_SIZE);
+                $disk->put($thumbPath, (string) $thumb->toWebp(75));
 
-        $encoded = $image->toWebp(80);
-
-        $thumb = Image::read($file)->cover(self::THUMB_SIZE, self::THUMB_SIZE);
-        $disk->put($thumbPath, (string) $thumb->toWebp(75));
-
-        return $album->photos()->create([
-            'original_name'  => $file->getClientOriginalName(),
-            'path'           => $path,
-            'thumbnail_path' => $thumbPath,
-            'width'          => $image->width(),
-            'height'         => $image->height(),
-            'size'           => $disk->size($path),
-        ]);
-    }
-
+                return $album->photos()->create([
+                    'original_name'  => $file->getClientOriginalName(),
+                    'path'           => $path,
+                    'thumbnail_path' => $thumbPath,
+                    'width'          => $image->width(),
+                    'height'         => $image->height(),
+                    'size'           => $disk->size($path),
+                ]);
+            }
+            
     public function delete(Photo $photo): void
     {
         Storage::disk('public')->delete([$photo->path, $photo->thumbnail_path]);
