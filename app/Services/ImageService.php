@@ -30,10 +30,10 @@ class ImageService
 
         $image = Image::read($file)->scaleDown(width: self::MAX_WIDTH);
 
-        $encoded = $image->toWebp(80);
-
+        
         $disk->put($path, (string) $encoded);
 
+        $encoded = $image->toWebp(80);
 
         $thumb = Image::read($file)->cover(self::THUMB_SIZE, self::THUMB_SIZE);
         $disk->put($thumbPath, (string) $thumb->toWebp(75));
